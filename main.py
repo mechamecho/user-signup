@@ -16,16 +16,16 @@
 #
 import webapp2
 import cgi
+from helpers import valid_username, valid_password, valid_vpassword, valid_email
 
-# html boilerplate for the top of every page
-page_header = """
+edit_header ="""
 <!DOCTYPE html>
 <html>
 <head>
-    <title>FlickList</title>
+    <title>{}</title>
 </head>
 <body>
-    <h1>FlickList</h1>
+    <h3>{}{}</h3>
 """
 
 # html boilerplate for the bottom of every page
@@ -34,47 +34,103 @@ page_footer = """
 </html>
 """
 
+signup_form = """
+<form action="/welcome" method="post">
+<table>
+    <tr>
+        <td><label>Username</td>
+                <td><input type="text" name="username" value="%(username)s"/></td>
+        </label>
+        <td><div style="color:red">{}</div><td>
+    </tr>
+    <tr>    
+        <td><label>Password</td>
+            <td><input type="password" name="password" value="%(password)s"/></td>
+        </label>
+        <td><div style="color:red">{}</div><td>
+    </tr>
+    <tr>
+        <td><label>Verify</td>
+            <td><input type="password" name="vpassword" value="%(vpassword)s"/></td>
+        </label>
+        <td><div style="color:red">{}</div><td>
+    </tr>
+    <tr>
+        <td><label>Email</td>
+            <td><input type="text" name="email" value="%(email)s"/></td>
+        </label>
+        <td><div style="color:red">{}</div><td>
+    </tr>
+</table>      
+    <input type="submit" value="Submit"/>
+</form>
+"""
 class Index(webapp2.RequestHandler):
     """ Handles requests coming in to '/' (the root of our site)
         e.g. www.flicklist.com/
     """
+    def write_form(self, error="",username="",password="",vpassword="",email=""):
+        form=self.response.write(signup_form.replace("{}", "")%{
+                                    "username":username,
+                                    "password":password,
+                                    "vpassword":vpassword,
+                                    "email":email})
+        return form
+        
 
     def get(self):
+        self.response.write(edit_header.format("Sign me up!", "Sign me up", ""))
+        self.write_form()
+        self.response.write(page_footer)
 
-        edit_header = "<h3>Sign me up</h3>"
-
-        # a form for adding new movies
-        signup_form = """
-        <form action="/signup" method="post">
-        <table>
-        	<tr>
-        		<td><label>Username</td>
-                		<td><input type="text" name="username"/></td>
-            		</label>
-            </tr>
-            	<td><label>Password</td>
-                <td><input type="text" name="password"/></td>
-            		</label>
-        		<td><label>Verify Password</td>
-                <td><input type="text" name="vpassword"/></td>
-            		</label>
-            	<td><label>Email</td>
-                <td><input type="text" name="email"/></td>
-            		</label>
-        </table>           
-            <input type="submit" value="Submit"/>
-        </form>
-        """
-        page_content = edit_header + signup_form
-        content = page_header + page_content + page_footer
-        self.response.write(content)
+class InputHandler(webapp2.RequestHandler):   
+    def post(self):
+        user_name=self.request.get('username')
+        user_pass=self.request.get('password')
+        user_vpass=self.request.get('vpassword')
+        user_email=self.request.get('email')
+        username=valid_username(user_name)
+        password=valid_password(user_pass)
+        vpassword=valid_vpassword(user_pass, user_vpass)
+        email=valid_email(user_email)
+        
 
 
-
-class MainHandler(webapp2.RequestHandler):
-    def get(self):
-        self.response.write('Hello world!')
+        if not(username and password and vpassword and email):
+            if len(user_name)==0:
+                username="please type in a username"
+            if not username:
+                username="invalid username"
+            else:
+                username=""
+            if not password:
+                password="invalid password"
+            else:
+                password=""
+            if not vpassword:
+                vpassword="the passwords don't match"
+            else:
+                vpassword=""
+            if not email:
+                email="invalid email address"
+            else: 
+                email=""
+            #inserts errors
+            error=(signup_form.format(username,password,
+                                     vpassword,
+                                     email))
+            #returns the form as it is 
+            error_final=error%{
+                               "username":user_name,
+                               "password":user_pass,
+                               "vpassword":user_vpass,
+                               "email":user_email}
+            self.response.write(error_final)
+        else:
+            self.response.write(edit_header.format("Congratulations!","Welcome ", user_name+"!"))
+            
 
 app = webapp2.WSGIApplication([
-    ('/', Index)
+    ('/', Index),
+    ('/welcome', InputHandler)
 ], debug=True)
