@@ -17,6 +17,7 @@
 import webapp2
 import cgi
 from helpers import valid_username, valid_password, valid_vpassword, valid_email
+import string
 
 edit_header ="""
 <!DOCTYPE html>
@@ -35,7 +36,7 @@ page_footer = """
 """
 
 signup_form = """
-<form action="/welcome" method="post">
+<form action="/" method="post">
 <table>
     <tr>
         <td><label>Username</td>
@@ -56,7 +57,7 @@ signup_form = """
         <td><div style="color:red">{}</div><td>
     </tr>
     <tr>
-        <td><label>Email</td>
+        <td><label>Email (not required)</td>
             <td><input type="text" name="email" value="%(email)s"/></td>
         </label>
         <td><div style="color:red">{}</div><td>
@@ -83,7 +84,8 @@ class Index(webapp2.RequestHandler):
         self.write_form()
         self.response.write(page_footer)
 
-class InputHandler(webapp2.RequestHandler):   
+        
+   
     def post(self):
         user_name=self.request.get('username')
         user_pass=self.request.get('password')
@@ -93,10 +95,8 @@ class InputHandler(webapp2.RequestHandler):
         password=valid_password(user_pass)
         vpassword=valid_vpassword(user_pass, user_vpass)
         email=valid_email(user_email)
-        
-
-
-        if not(username and password and vpassword and email):
+     
+        if (username and password and vpassword and email)==False:
             if len(user_name)==0:
                 username="please type in a username"
             if not username:
@@ -126,11 +126,21 @@ class InputHandler(webapp2.RequestHandler):
                                "vpassword":user_vpass,
                                "email":user_email}
             self.response.write(error_final)
+
         else:
-            self.response.write(edit_header.format("Congratulations!","Welcome ", user_name+"!"))
+            self.redirect("/welcome?user_name=" + user_name)
+        
+            
+            
+
+class WelcomeHandler(webapp2.RequestHandler):
+    def get(self):
+        user_name=self.request.get("user_name")
+        self.response.write(edit_header.format("Congratulations!","Welcome ", user_name +"!"))
+
             
 
 app = webapp2.WSGIApplication([
     ('/', Index),
-    ('/welcome', InputHandler)
+    ('/welcome', WelcomeHandler)
 ], debug=True)

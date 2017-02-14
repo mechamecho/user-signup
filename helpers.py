@@ -23,7 +23,7 @@ def valid_vpassword(password, vpassword):
 
 EMAIL_RE=re.compile(r"^[\S]+@[\S]+.[\S]+$")
 def valid_email(email):
-	if EMAIL_RE.match(email):
+	if EMAIL_RE.match(email) or email=="":
 		return True
 	else:
 		return False
