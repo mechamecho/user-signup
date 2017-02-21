@@ -40,7 +40,7 @@ signup_form = """
 <table>
     <tr>
         <td><label>Username</td>
-                <td><input type="text" name="username" value=%(username)s></td>
+                <td><input type="text" name="username" value="%(username)s"></td>
         </label>
         <td><div style="color:red">%(username_err)s</div><td>
     </tr>
