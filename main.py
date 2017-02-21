@@ -23,10 +23,10 @@ edit_header ="""
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{}</title>
+    <title>%(title)s</title>
 </head>
 <body>
-    <h3>{}{}</h3>
+    <h3>%(header)s %(sechead)s</h3>
 """
 
 # html boilerplate for the bottom of every page
@@ -40,27 +40,27 @@ signup_form = """
 <table>
     <tr>
         <td><label>Username</td>
-                <td><input type="text" name="username" value="%(username)s"/></td>
+                <td><input type="text" name="username" value=%(username)s></td>
         </label>
-        <td><div style="color:red">{}</div><td>
+        <td><div style="color:red">%(username_err)s</div><td>
     </tr>
     <tr>    
         <td><label>Password</td>
-            <td><input type="password" name="password" value="%(password)s"/></td>
+            <td><input type="password" name="password"/></td>
         </label>
-        <td><div style="color:red">{}</div><td>
+        <td><div style="color:red">%(password_err)s</div><td>
     </tr>
     <tr>
         <td><label>Verify</td>
-            <td><input type="password" name="vpassword" value="%(vpassword)s"/></td>
+            <td><input type="password" name="vpassword"/></td>
         </label>
-        <td><div style="color:red">{}</div><td>
+        <td><div style="color:red">%(vpassword_err)s</div><td>
     </tr>
     <tr>
         <td><label>Email (not required)</td>
             <td><input type="text" name="email" value="%(email)s"/></td>
         </label>
-        <td><div style="color:red">{}</div><td>
+        <td><div style="color:red">%(email_err)s</div><td>
     </tr>
 </table>      
     <input type="submit" value="Submit"/>
@@ -70,62 +70,63 @@ class Index(webapp2.RequestHandler):
     """ Handles requests coming in to '/' (the root of our site)
         e.g. www.flicklist.com/
     """
-    def write_form(self, error="",username="",password="",vpassword="",email=""):
-        form=self.response.write(signup_form.replace("{}", "")%{
+    def write_form(self,
+                    title="Sign me up!",
+                    header="Sign me up",
+                    sechead="",
+                    username="",
+                    email="",
+                    username_err="",
+                    password_err="", 
+                    vpassword_err="",
+                    email_err=""):
+        edited_header=edit_header%{"title":title,
+                                    "header":header,
+                                    "sechead":sechead 
+                                    }
+        signup_form_w_var=signup_form%{
                                     "username":username,
-                                    "password":password,
-                                    "vpassword":vpassword,
-                                    "email":email})
-        return form
+                                    "email":email, 
+                                    "username_err":username_err, 
+                                    "password_err":password_err, 
+                                    "vpassword_err":vpassword_err,
+                                    "email_err":email_err}
+        whole_page=edited_header+signup_form_w_var+page_footer
+        whole_page_written=self.response.write(whole_page)
+        return whole_page
         
 
     def get(self):
-        self.response.write(edit_header.format("Sign me up!", "Sign me up", ""))
         self.write_form()
-        self.response.write(page_footer)
-
+        
         
    
     def post(self):
-        user_name=self.request.get('username')
-        user_pass=self.request.get('password')
-        user_vpass=self.request.get('vpassword')
-        user_email=self.request.get('email')
-        username=valid_username(user_name)
-        password=valid_password(user_pass)
-        vpassword=valid_vpassword(user_pass, user_vpass)
-        email=valid_email(user_email)
+        user_name=cgi.escape(self.request.get('username'), quote=True)
+        user_pass=cgi.escape(self.request.get('password'), quote=True)
+        user_vpass=cgi.escape(self.request.get('vpassword'), quote=True)
+        user_email=cgi.escape(self.request.get('email'), quote=True)
+        username_err=""
+        password_err=""
+        vpassword_err=""
+        email_err=""
      
-        if (username and password and vpassword and email)==False:
+        if not (valid_username(user_name) and
+                valid_password(user_pass) and
+                valid_vpassword(user_pass, user_vpass) and
+                valid_email(user_email)):
             if len(user_name)==0:
-                username="please type in a username"
-            if not username:
-                username="invalid username"
-            else:
-                username=""
-            if not password:
-                password="invalid password"
-            else:
-                password=""
-            if not vpassword:
-                vpassword="the passwords don't match"
-            else:
-                vpassword=""
-            if not email:
-                email="invalid email address"
-            else: 
-                email=""
-            #inserts errors
-            error=(signup_form.format(username,password,
-                                     vpassword,
-                                     email))
-            #returns the form as it is 
-            error_final=error%{
-                               "username":user_name,
-                               "password":user_pass,
-                               "vpassword":user_vpass,
-                               "email":user_email}
-            self.response.write(error_final)
+                username_err="please type in a username"
+            elif not valid_username(user_name):
+                username_err="invalid username"
+            if not valid_password(user_pass):
+                password_err="invalid password"
+            if not valid_vpassword(user_pass, user_vpass):
+                vpassword_err="the passwords don't match"
+            if not valid_email(user_email):
+                email_err="invalid email address"
+            self.write_form("Sign me up!","sign me up","",user_name, user_email,
+                            username_err, password_err, vpassword_err, email_err )   
 
         else:
             self.redirect("/welcome?user_name=" + user_name)
@@ -136,7 +137,8 @@ class Index(webapp2.RequestHandler):
 class WelcomeHandler(webapp2.RequestHandler):
     def get(self):
         user_name=self.request.get("user_name")
-        self.response.write(edit_header.format("Congratulations!","Welcome ", user_name +"!"))
+        self.response.write(edit_header%{"title":"Congratulations!",
+                                        "header":"Welcome", "sechead":user_name +"!"})
 
             
 
